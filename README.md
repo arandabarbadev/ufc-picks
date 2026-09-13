@@ -109,6 +109,21 @@ Tu app quedará en: **https://arandabarbadev.github.io/ufc-picks/**
 
 ---
 
+## 📱 Instalar en el móvil (como una app)
+
+La web es una **PWA**: se instala con su icono y abre a pantalla completa, sin barra
+de navegador.
+
+**Android (Chrome):**
+1. Abre https://arandabarbadev.github.io/ufc-picks/ en Chrome
+2. Menú ⋮ → **"Instalar aplicación"** (o "Añadir a pantalla de inicio")
+3. Acepta → el icono del octágono rojo aparece en tu escritorio 🥊
+
+**iPhone (Safari):**
+1. Abre la web en **Safari** (en Chrome de iPhone no se puede)
+2. Pulsa el botón de **compartir** (el cuadradito con flecha hacia arriba)
+3. Baja y pulsa **"Añadir a pantalla de inicio"** → Añadir
+
 ## Cómo se usa
 
 1. **Antes del evento**: pestaña EVENTOS → `+` → crea el evento ("UFC 305", fecha)

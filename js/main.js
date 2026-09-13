@@ -9,6 +9,11 @@ import { renderEvents, renderEventDetail, renderHistory } from "./views.js";
 import { renderDashboard } from "./dashboard.js";
 import { toast } from "./ui.js";
 
+// Registrar el service worker → permite "instalar" la app en el móvil
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
 /* ── Estado global de la app ─────────────────────────── */
 
 const store = {
