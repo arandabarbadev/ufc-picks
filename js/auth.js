@@ -5,6 +5,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { toast } from "./ui.js";
@@ -22,6 +24,7 @@ function errorES(e) {
     "auth/wrong-password": "Contraseña incorrecta.",
     "auth/user-not-found": "No existe una cuenta con ese email.",
     "auth/popup-closed-by-user": "Ventana de Google cerrada antes de terminar.",
+    "auth/popup-blocked": "El navegador bloqueó la ventanita de Google.",
     "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase (mira el README, paso 3).",
     "auth/operation-not-allowed": "Activa este método de login en Firebase → Authentication (mira el README, paso 3).",
   };
@@ -53,6 +56,9 @@ export function initAuthUI() {
     btnGoogle.disabled = b;
     btnLogin.textContent = b ? "UN MOMENTO…" : modoRegistro ? "CREAR CUENTA" : "ENTRAR";
   }
+
+  // Si un login con Google quedó a medias por redirección, se completa aquí
+  getRedirectResult(auth).catch((e) => showError(errorES(e)));
 
   btnSwitch.addEventListener("click", () => {
     modoRegistro = !modoRegistro;
@@ -92,7 +98,19 @@ export function initAuthUI() {
       await signInWithPopup(auth, new GoogleAuthProvider());
       toast("¡Listo para la cartelera! 🥊", "ok");
     } catch (err) {
-      showError(errorES(err));
+      // Ventanita bloqueada o cerrada (típico en móvil): reintentar con
+      // redirección, igual que hace la app de deberes
+      const reintenta = ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/cancelled-popup-request"];
+      if (reintenta.includes(err?.code)) {
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          return; // la página se recarga para completar el login
+        } catch (err2) {
+          showError(errorES(err2));
+        }
+      } else {
+        showError(errorES(err));
+      }
     } finally {
       busy(false);
     }
