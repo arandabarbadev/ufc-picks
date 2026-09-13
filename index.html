@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="UFC Picks — mi diario personal de predicciones de UFC" />
+  <title>UFC PICKS</title>
+
+  <!-- Tipografías: Anton (títulos estilo impact) + Inter (texto) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js para las gráficas del dashboard -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ══════════ PANTALLA DE LOGIN ══════════ -->
+  <section id="auth-screen" class="auth-screen">
+    <div class="auth-inner">
+      <div class="brand">
+        <svg class="octagon" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M35 4 L65 4 L96 35 L96 65 L65 96 L35 96 L4 65 L4 35 Z" fill="none" stroke="currentColor" stroke-width="7"/>
+        </svg>
+        <h1>UFC <span>PICKS</span></h1>
+        <p class="tagline">TU DIARIO DE PREDICCIONES</p>
+      </div>
+
+      <!-- Aviso si Firebase aún no está configurado -->
+      <div id="setup-warning" class="setup-warning" hidden>
+        <h3>⚡ CONFIGURA FIREBASE PRIMERO</h3>
+        <p>
+          Abre <strong>js/firebase-config.js</strong> y pega la configuración de tu
+          proyecto Firebase. Los pasos exactos están en el
+          <strong>README.md</strong> (paso 2).
+        </p>
+      </div>
+
+      <form id="login-form" class="auth-form" novalidate>
+        <label>
+          <span>EMAIL</span>
+          <input type="email" id="email" autocomplete="email" placeholder="tu@email.com" required />
+        </label>
+        <label>
+          <span>CONTRASEÑA</span>
+          <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required />
+        </label>
+        <p id="auth-error" class="auth-error" role="alert" hidden></p>
+        <button type="submit" id="btn-login" class="btn btn-primary btn-block">ENTRAR</button>
+        <button type="button" id="btn-google" class="btn btn-ghost btn-block">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/>
+            <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.2-7-5.1l-3.9 3C3.1 21.3 7.2 24 12 24z"/>
+            <path fill="#FBBC05" d="M5 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3l-4-3.1C.4 8.2 0 10 0 12s.4 3.8 1 5.4l4-3.1z"/>
+            <path fill="#EA4335" d="M12 4.7c2.3 0 3.8 1 4.7 1.8l3.3-3.2C18 1.6 15.2 0 12 0 7.2 0 3.1 2.7 1 6.6l4 3.1c1-2.9 3.8-5 7-5z"/>
+          </svg>
+          ENTRAR CON GOOGLE
+        </button>
+        <div class="auth-switch">
+          <span id="switch-text">¿No tienes cuenta?</span>
+          <button type="button" id="btn-switch" class="link">Regístrate</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ══════════ APP (tras iniciar sesión) ══════════ -->
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <a href="#/dashboard" class="topbar-brand">
+        <svg class="octagon octagon-sm" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M35 4 L65 4 L96 35 L96 65 L65 96 L35 96 L4 65 L4 35 Z" fill="none" stroke="currentColor" stroke-width="10"/>
+        </svg>
+        UFC <span>PICKS</span>
+      </a>
+      <div class="topbar-user">
+        <span id="user-chip" class="user-chip"></span>
+        <button id="btn-logout" class="btn btn-ghost btn-sm" title="Cerrar sesión">SALIR</button>
+      </div>
+    </header>
+
+    <main id="view" class="view"><!-- las vistas se renderizan aquí --></main>
+
+    <nav class="bottomnav">
+      <a href="#/dashboard" data-route="dashboard" class="nav-item">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V21h-6.5v-6h-5v6H3v-9.5z"/></svg>
+        <span>INICIO</span>
+      </a>
+      <a href="#/events" data-route="events" class="nav-item">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2.5V2.5h2.5V5h4V2.5H16.5V5H19a1 1 0 0 1 1 1v3H4V6a1 1 0 0 1 1-1zm-2 6h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V11zm6 3v2h6v-2H9z"/></svg>
+        <span>EVENTOS</span>
+      </a>
+      <a href="#/history" data-route="history" class="nav-item">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3a9 9 0 1 0 8.9 10.4l-2.5-.5A6.5 6.5 0 1 1 13 5.5V9l4.5-4L13 1v2zm-1 5v6l4.7 2.8.8-1.3-3.9-2.3V8h-1.6z"/></svg>
+        <span>HISTORIAL</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Contenedores de modales y avisos -->
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

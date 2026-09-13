@@ -1,0 +1,4 @@
+# Archivos de sistema que no deben subirse
+.DS_Store
+Thumbs.db
+desktop.ini
