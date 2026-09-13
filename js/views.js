@@ -2,7 +2,7 @@
 // e historial con filtros.
 
 import {
-  addEvent, updateEvent, deleteEvent, addFight, deleteFight,
+  addEvent, updateEvent, deleteEvent, addFight, addFights, deleteFight,
   savePick, deletePick, saveResult, deleteResult,
 } from "./db.js";
 import { WEIGHT_CLASSES, METHODS, ROUNDS, scoreFight, isResolved } from "./stats.js";
@@ -125,13 +125,17 @@ export function renderEventDetail(view, store, eventId) {
     <div id="list-main"></div>
     <h3 class="section-title">PRELIMINARES</h3>
     <div id="list-prelim"></div>
-    <button class="btn btn-primary btn-block" id="btn-add-fight" style="margin-top:14px">+ AÑADIR PELEA</button>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button class="btn btn-primary btn-block" id="btn-add-fight">+ AÑADIR PELEA</button>
+      <button class="btn btn-ghost btn-block" id="btn-add-bulk">+ AÑADIR VARIAS DE UNA VEZ</button>
+    </div>
   `;
 
   paintFights(view.querySelector("#list-main"), store, ev, main);
   paintFights(view.querySelector("#list-prelim"), store, ev, prelim);
 
   view.querySelector("#btn-add-fight").onclick = () => openFightForm(store, ev);
+  view.querySelector("#btn-add-bulk").onclick = () => openBulkFightForm(store, ev);
   view.querySelector("#btn-edit-ev").onclick = () => openEventForm(store, ev);
   view.querySelector("#btn-del-ev").onclick = async () => {
     if (await confirmDialog("¿Borrar evento?", `Se borrará "${ev.name}" con todas sus peleas, picks y resultados.`)) {
@@ -320,7 +324,134 @@ export function openFightForm(store, ev) {
   };
 }
 
-/* ══════════════ FORMULARIO DE PICK ══════════════ */
+/* ══════════════ AÑADIR VARIAS PELEAS DE UNA VEZ ══════════════ */
+
+// Quita mayúsculas y acentos para comparar ("Wélter" == "welter")
+const norm = (s) => s.toLowerCase().normalize("NFD").replace(new RegExp("[" + String.fromCharCode(0x300) + "-" + String.fromCharCode(0x36f) + "]", "g"), ""); // 0x300-0x36F = rango de acentos
+
+// Nombres en inglés que aparecen al copiar carteleras de webs en inglés
+const PESOS_EN = {
+  "light heavyweight": "Semipesado",
+  lightheavyweight: "Semipesado",
+  heavyweight: "Peso pesado",
+  middleweight: "Peso mediano",
+  welterweight: "Peso wélter",
+  lightweight: "Peso ligero",
+  featherweight: "Peso pluma",
+  bantamweight: "Peso gallo",
+  flyweight: "Peso mosca",
+  "women's strawweight": "Peso paja femenino",
+  "women's bantamweight": "Peso gallo femenino",
+  "women's flyweight": "Peso mosca femenino",
+  strawweight: "Peso paja femenino",
+  catchweight: "Catchweight",
+};
+
+/** Detecta la categoría de peso en el texto extra (español o inglés). */
+function detectWeight(extras) {
+  const x = norm(extras);
+  for (const [en, es] of Object.entries(PESOS_EN).sort((a, b) => b[0].length - a[0].length)) {
+    if (x.includes(norm(en))) return es;
+  }
+  for (const wc of WEIGHT_CLASSES) if (x.includes(norm(wc))) return wc; // nombre completo
+  for (const wc of WEIGHT_CLASSES) if (x.includes(norm(wc.replace(/^Peso /, "")))) return wc; // corto: "mediano", "welter"...
+  return "";
+}
+
+/**
+ * Interpreta una línea del tipo:
+ *   "Peleador A vs Peleador B | mediano | titulo | preliminar"
+ * (todo lo que va tras "|" es opcional). Devuelve { ok, fight, error }.
+ */
+function parseFightLine(line) {
+  const partes = line.split("|");
+  const m = partes[0].match(/^(.+?)\s+(?:vs\.?|v)\s+(.+)$/i);
+  if (!m) return { ok: false, error: "no veo el formato Peleador A vs Peleador B" };
+  const fighterA = m[1].trim().slice(0, 60);
+  const fighterB = m[2].trim().slice(0, 60);
+  if (!fighterA || !fighterB) return { ok: false, error: "falta el nombre de un peleador" };
+
+  const extras = norm(partes.slice(1).join(" "));
+  return {
+    ok: true,
+    fight: {
+      fighterA,
+      fighterB,
+      weightClass: detectWeight(extras),
+      isTitle: /titul|title|camp|cinturon|belt/.test(extras),
+      card: /prelim/.test(extras) ? "preliminar" : "principal",
+      pick: null,
+      result: null,
+    },
+  };
+}
+
+export function openBulkFightForm(store, ev) {
+  const m = openModal(`
+    <h2>AÑADIR VARIAS PELEAS</h2>
+    <p style="color:var(--ink-3);font-size:13px;margin:-8px 0 14px">
+      Pega la cartelera con <strong>una pelea por línea</strong>. El formato es
+      <em>Peleador A vs Peleador B | peso | titulo | preliminar</em> — todo lo que va
+      tras "|" es opcional (el peso también vale en inglés: middleweight, flyweight…).
+    </p>
+    <div class="field">
+      <span>PELEAS (UNA POR LÍNEA)</span>
+      <textarea id="bk-text" rows="9" placeholder="Israel Adesanya vs Dricus Du Plessis | mediano | titulo
+Kai Kara-France vs Steve Erceg | flyweight
+Jaqueline Amorim vs Polyana Viana | paja femenino | preliminar"></textarea>
+    </div>
+    <div class="field">
+      <span>VISTA PREVIA</span>
+      <div id="bk-preview" style="font-size:13px;color:var(--ink-2)">Escribe arriba y aquí verás cómo quedan las peleas.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="bk-cancel">CANCELAR</button>
+      <button class="btn btn-primary" id="bk-save" disabled>AÑADIR</button>
+    </div>
+  `);
+
+  const ta = m.querySelector("#bk-text");
+  const preview = m.querySelector("#bk-preview");
+  const btnSave = m.querySelector("#bk-save");
+  let buenas = [];
+
+  function refrescar() {
+    const lineas = ta.value.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 30);
+    buenas = [];
+    const filas = lineas.map((linea, i) => {
+      const r = parseFightLine(linea);
+      if (!r.ok) {
+        return `<div style="padding:5px 0;color:#e66767">✗ Línea ${i + 1}: ${esc(r.error)}</div>`;
+      }
+      buenas.push(r.fight);
+      const f = r.fight;
+      return `<div style="padding:5px 0">
+        ✓ ${esc(f.fighterA)} <span style="color:var(--ink-3)">vs</span> ${esc(f.fighterB)}
+        <span style="color:var(--ink-3)">· ${esc(f.weightClass || "sin categoría")}
+        · ${f.card === "preliminar" ? "preliminar" : "principal"}${f.isTitle ? " · 🏆" : ""}</span>
+      </div>`;
+    });
+    preview.innerHTML = lineas.length === 0
+      ? "Escribe arriba y aquí verás cómo quedan las peleas."
+      : filas.join("") + `<div style="margin-top:8px;color:var(--ink-3)">${buenas.length} de ${lineas.length} listas para añadir</div>`;
+    btnSave.disabled = buenas.length === 0;
+    btnSave.textContent = buenas.length > 0 ? `AÑADIR ${buenas.length} PELEAS` : "AÑADIR";
+  }
+
+  ta.addEventListener("input", refrescar);
+  m.querySelector("#bk-cancel").onclick = closeModal;
+  btnSave.onclick = async () => {
+    btnSave.disabled = true;
+    try {
+      await addFights(store.uid, ev.id, buenas);
+      closeModal();
+      toast(`${buenas.length} peleas añadidas. ¡A pickear! 🥊`, "ok");
+    } catch (e) {
+      toast("No se pudieron guardar: " + (e?.code || e?.message));
+      btnSave.disabled = false;
+    }
+  };
+}
 
 export function openPickForm(store, ev, f) {
   const p = f.pick || {};

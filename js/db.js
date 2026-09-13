@@ -7,7 +7,7 @@
 import { db } from "./firebase-config.js";
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, getDocs,
+  onSnapshot, query, orderBy, getDocs, writeBatch,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 const eventsCol = (uid) => collection(db, "users", uid, "events");
@@ -51,6 +51,18 @@ export function watchFights(uid, eventId, cb) {
 export async function addFight(uid, eventId, data) {
   const snap = await getDocs(fightsCol(uid, eventId));
   await addDoc(fightsCol(uid, eventId), { ...data, order: snap.size + 1, createdAt: Date.now() });
+}
+
+/** Añade varias peleas de golpe (un solo lote de escritura). */
+export async function addFights(uid, eventId, fights) {
+  const snap = await getDocs(fightsCol(uid, eventId));
+  let order = snap.size;
+  const batch = writeBatch(db);
+  for (const f of fights) {
+    order++;
+    batch.set(doc(fightsCol(uid, eventId)), { ...f, order, createdAt: Date.now() });
+  }
+  await batch.commit();
 }
 
 export async function deleteFight(uid, eventId, fightId) {

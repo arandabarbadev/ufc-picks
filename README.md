@@ -127,8 +127,11 @@ de navegador.
 ## Cómo se usa
 
 1. **Antes del evento**: pestaña EVENTOS → `+` → crea el evento ("UFC 305", fecha)
-   → añade peleas → en cada pelea pulsa **HACER PICK** (ganador, método, round,
-   confianza y tu razonamiento).
+   → añade peleas (de una en una, o **varias de una vez** pegando la cartelera con
+   una pelea por línea: `Peleador A vs Peleador B | peso | titulo | preliminar`,
+   donde todo lo que va tras `|` es opcional y el peso también vale en inglés)
+   → en cada pelea pulsa **HACER PICK** (ganador, método, round, confianza y
+   tu razonamiento).
 2. **Después del evento**: entra en el evento → en cada pelea pulsa
    **MARCAR RESULTADO** → la app te dice al instante si acertaste y cuántos puntos.
 3. **Ver tu nivel**: pestaña INICIO (dashboard) e HISTORIAL (picks vs resultados
