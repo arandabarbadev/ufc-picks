@@ -32,6 +32,12 @@ marcas los resultados después… y la app calcula qué tan buen predictor eres.
 
 ## ⚙️ Puesta en marcha (una sola vez)
 
+> **💡 Esta app reusa el proyecto Firebase de deberes (`deberes-e3282`)**, así que
+> los pasos 1 (crear proyecto), 2 (pegar config), 3 (login de Google + dominio
+> autorizado) **ya están hechos**. Solo queda el paso 4 (reglas de Firestore) —
+> ¡usa las reglas combinadas de abajo para que seguir funcionando deberes!
+> El paso 3.1 (email/contraseña) es opcional: con Google ya puedes entrar.
+
 ### 1. Crear el proyecto Firebase
 
 1. Entra en [console.firebase.google.com](https://console.firebase.google.com) con tu cuenta de Google.
@@ -58,23 +64,30 @@ tu objeto. Guarda.
 
 ### 4. Crear la base de datos
 
-1. Firebase → **Firestore Database** → **Crear base de datos**.
-2. Ubicación: `europe-west` (o la que te ofrezca) → modo **de producción** → Crear.
-3. Pestaña **Reglas** → borra lo que haya y pega esto (hace que cada usuario solo
-   pueda ver sus propios datos):
+1. Firebase → **Firestore Database** → la base de datos ya existe (la de deberes):
+   entra en **Firestore Database → pestaña Reglas**.
+2. ⚠️ **Importante:** borra lo que haya y pega estas **reglas combinadas**, que
+   mantienen los datos privados en las DOS apps (deberes usa `usuarios/...` y
+   UFC Picks usa `users/...`; si pegas solo las de UFC Picks, deberes se queda
+   sin guardar en la nube):
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // App de deberes
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    // App UFC Picks (eventos, peleas, picks...)
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
-```
+``````
 
-4. Publica las reglas.
+3. Publica las reglas.
 
 ### 5. Probar en local
 
